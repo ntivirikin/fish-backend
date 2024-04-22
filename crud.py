@@ -24,9 +24,6 @@ def delete_user(db: Session, user: schemas.User):
     db.commit()
     return
 
-def get_catches_by_user(db: Session, user_id: int):
-    return db.query(models.Catch).filter(models.Catch.angler_id == user_id)
-
 def create_catch_for_user(db: Session, catch: schemas.CatchCreate, user_id: int):
     db_catch = models.Catch(**catch.model_dump(), angler_id=user_id)
     db.add(db_catch)

@@ -43,6 +43,8 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db_user = crud.get_user(db, user_id=user_id)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User does not exist!")
+    if len(db_user.catches) is not 0:
+        raise HTTPException(status_code=400, detail="User still has catches that must be removed!")
     return crud.delete_user(db, user=db_user)
 
 # Create catch for user
@@ -57,18 +59,27 @@ def create_user_catches(user_id: int, catch: schemas.CatchCreate, db: Session = 
 # Retrieve catches by user
 @app.get("/users/{user_id}/catches/", response_model=list[schemas.Catch])
 def read_user_catches(user_id: int, db: Session = Depends(get_db)):
-    db_catches = crud.get_catches_by_user(db, user_id=user_id)
-    if db_catches is None:
+    db_user = crud.get_user(db, user_id=user_id)
+    if db_user is None:
         raise HTTPException(status_code=404, detail="User does not exist!")
-    return db_catches
+    return db_user.catches
+
+# Delete all catches
+@app.delete("/users/{user_id}/catches/")
+def delete_all_user_catches(user_id: int, db: Session = Depends(get_db)):
+    db_user = crud.get_user(db, user_id=user_id)
+    db_catches = db_user.catches
+    for catch in db_catches:
+        db_del = crud.delete_catch(db, catch)
+    return db_del
 
 # Delete catch from certain user
 @app.delete("/users/{user_id}/catches/{catch_id}")
 def delete_user_catch(user_id: int, catch_id: int, db: Session = Depends(get_db)):
-    db_catches = crud.get_catches_by_user(db, user_id=user_id)
-    if db_catches is None:
+    db_user = crud.get_user(db, user_id=user_id)
+    if len(db_user.catches) is 0:
         raise HTTPException(status_code=404, detail="This user has no catches logged!")
-    for catch in db_catches:
+    for catch in db_user.catches:
         if catch_id == catch.id:
             return crud.delete_catch(db, catch)
     raise HTTPException(status_code=404, detail="This user does not have this catch logged!")
